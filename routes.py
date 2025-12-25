@@ -1,6 +1,7 @@
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, session
 from app import app, db
 from forms import TaskForm, DeleteTaskForm
+import uuid
 import yfinance as yf
 import math
 import statistics
@@ -9,6 +10,12 @@ from models import Task
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # Ensure a per-browser visitor UUID exists in the signed session
+    visitor_uuid = session.get('visitor_uuid')
+    if not visitor_uuid:
+        visitor_uuid = str(uuid.uuid4())
+        session['visitor_uuid'] = visitor_uuid
+
     # Top add form
     add_form = TaskForm(prefix='add')
     if add_form.validate_on_submit() and add_form.submit.data:
@@ -65,13 +72,15 @@ def index():
             peg=_safe_float(peg),
             roe=_safe_float(roe),
             risk=risk_val,
+            visitor_uuid=visitor_uuid,
         )
         db.session.add(task)
         db.session.commit()
         flash('Stock added')
         return redirect(url_for('index'))
 
-    tasks = Task.query.order_by(Task.date.desc()).all()
+    # Only show tasks belonging to this browser's visitor UUID
+    tasks = Task.query.filter_by(visitor_uuid=visitor_uuid).order_by(Task.date.desc()).all()
     # Create delete forms for CSRF protection per row
     delete_forms = {task.id: DeleteTaskForm(prefix=f'd{task.id}') for task in tasks}
 
