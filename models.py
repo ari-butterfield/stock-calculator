@@ -14,3 +14,13 @@ class Task(db.Model):
 
     def __repr__(self):
         return f"Task(visitor={self.visitor_uuid}, ticker={self.ticker}, pe={self.pe_ratio}, peg={self.peg}, roe={self.roe}, risk={self.risk})"
+
+
+class Visitor(db.Model):
+    """Tracks per-browser visitor UUID and last seen timestamp for cleanup."""
+    uuid = db.Column(db.String(36), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return f"Visitor(uuid={self.uuid}, last_seen={self.last_seen})"

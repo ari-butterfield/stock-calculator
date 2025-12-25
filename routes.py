@@ -5,7 +5,8 @@ import uuid
 import yfinance as yf
 import math
 import statistics
-from models import Task
+from models import Task, Visitor
+from datetime import datetime
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -15,6 +16,17 @@ def index():
     if not visitor_uuid:
         visitor_uuid = str(uuid.uuid4())
         session['visitor_uuid'] = visitor_uuid
+
+    # Upsert visitor row and refresh last_seen
+    try:
+        v = Visitor.query.get(visitor_uuid)
+        if v is None:
+            v = Visitor(uuid=visitor_uuid)
+            db.session.add(v)
+        v.last_seen = datetime.utcnow()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
     # Top add form
     add_form = TaskForm(prefix='add')
