@@ -1,0 +1,90 @@
+from flask import render_template, url_for, flash, redirect, request
+from app import app, db
+from forms import TaskForm, DeleteTaskForm
+import yfinance as yf
+import math
+import statistics
+from models import Task
+
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    # Top add form
+    add_form = TaskForm(prefix='add')
+    if add_form.validate_on_submit() and add_form.submit.data:
+        ticker_input = add_form.ticker.data.strip().upper()
+
+        # Lookup via yfinance
+        try:
+            tk = yf.Ticker(ticker_input)
+            info = tk.info or {}
+        except Exception:
+            flash(f'Failed to lookup {ticker_input}.')
+            return redirect(url_for('index'))
+
+        # Basic existence check
+        if not info or (not info.get('shortName') and not info.get('longName') and info.get('regularMarketPrice') is None and not info.get('symbol')):
+            flash(f'Ticker {ticker_input} not found.')
+            return redirect(url_for('index'))
+
+        def _safe_float(v):
+            try:
+                if v is None:
+                    return None
+                return float(v)
+            except Exception:
+                return None
+
+        roe = info.get('returnOnEquity') or info.get('returnOnEquityAnnual') or info.get('roe')
+        pe = info.get('trailingPE')
+        growth = info.get('earningsGrowth')
+        peg = None
+
+        if pe and growth:
+            peg = pe / (growth * 100)
+
+        # Compute historical risk: std dev of log daily returns over last 2 years
+        risk_val = None
+        try:
+            hist = tk.history(period='2y', interval='1d')
+            closes = []
+            if hist is not None and not hist.empty and 'Close' in hist:
+                # convert to plain floats
+                closes = [float(x) for x in hist['Close'].dropna().tolist()]
+            if len(closes) >= 3:
+                log_returns = [math.log(closes[i] / closes[i-1]) for i in range(1, len(closes))]
+                # require at least two returns for sample stdev
+                if len(log_returns) >= 2:
+                    risk_val = float(statistics.stdev(log_returns))
+        except Exception:
+            risk_val = None
+
+        task = Task(
+            ticker=ticker_input,
+            pe_ratio=_safe_float(pe),
+            peg=_safe_float(peg),
+            roe=_safe_float(roe),
+            risk=risk_val,
+        )
+        db.session.add(task)
+        db.session.commit()
+        flash('Stock added')
+        return redirect(url_for('index'))
+
+    tasks = Task.query.order_by(Task.date.desc()).all()
+    # Create delete forms for CSRF protection per row
+    delete_forms = {task.id: DeleteTaskForm(prefix=f'd{task.id}') for task in tasks}
+
+    # Handle deletes only (adds are handled above)
+    if request.method == 'POST' and not (add_form.validate_on_submit() and add_form.submit.data):
+        for task in tasks:
+            delete_key = f'd{task.id}-submit'
+            if delete_key in request.form:
+                dform = delete_forms[task.id]
+                if dform.validate():
+                    db.session.delete(task)
+                    db.session.commit()
+                    flash('Row deleted.')
+                    return redirect(url_for('index'))
+
+    return render_template('index.html', tasks=tasks, add_form=add_form, delete_forms=delete_forms)
