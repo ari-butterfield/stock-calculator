@@ -1,12 +1,14 @@
 from flask import render_template, url_for, flash, redirect, request, session
-from app import app, db
-from forms import TaskForm, DeleteTaskForm
+from app import app
+from extensions import db
+from forms import TaskForm, DeleteTaskForm, ClearAllForm
 import uuid
 import yfinance as yf
 import math
 import statistics
 from models import Task, Visitor
 from datetime import datetime
+from flask import current_app
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -109,3 +111,29 @@ def index():
                     return redirect(url_for('index'))
 
     return render_template('index.html', tasks=tasks, add_form=add_form, delete_forms=delete_forms)
+
+
+@app.route('/clear', methods=['POST'])
+def clear_all():
+    visitor_uuid = session.get('visitor_uuid')
+    if not visitor_uuid:
+        flash('No data to clear.')
+        return redirect(url_for('index'))
+
+    form = ClearAllForm()
+    if form.validate_on_submit():
+        try:
+            Task.query.filter_by(visitor_uuid=visitor_uuid).delete()
+            current_app.logger.info(f'Cleared tasks for visitor {visitor_uuid}')
+            db.session.commit()
+            flash('All stocks cleared')
+        except Exception:
+            db.session.rollback()
+            flash('Failed to clear stocks')
+    return redirect(url_for('index'))
+
+
+# Make clear form available in all templates easily
+@app.context_processor
+def inject_clear_form():
+    return dict(clear_form=ClearAllForm())

@@ -12,3 +12,7 @@ class TaskForm(FlaskForm):
 
 class DeleteTaskForm(FlaskForm):
     submit = SubmitField('Delete')
+
+
+class ClearAllForm(FlaskForm):
+    submit = SubmitField('Clear All')

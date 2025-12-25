@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 
 {% block main %}
-  <div class="mb-3">
+  <div class="mb-3 d-flex align-items-center">
     <form method="post" class="form-inline">
       {{ add_form.csrf_token }}
       <div class="form-group mr-2">
         {{ add_form.ticker(class="form-control") }}
       </div>
       {{ add_form.submit(class="btn btn-primary") }}
+    </form>
+
+    <form method="post" action="{{ url_for('clear_all') }}" class="ml-auto">
+      {{ clear_form.csrf_token }}
+      {{ clear_form.submit(class='btn btn-danger') }}
     </form>
   </div>
 

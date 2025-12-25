@@ -1,8 +1,9 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
-from cleanup import cleanup_stale_visitors
+from cleanup_inactivity import cleanup_stale_visitors
+from extensions import db
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8u3rouhfkjdsfiluh'
@@ -10,13 +11,23 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# Initialize extensions with the app
+db.init_app(app)
 
 from routes import *
 
 # Schedule daily cleanup of stale visitor data (runs in background)
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=lambda: cleanup_stale_visitors(days=14), trigger='interval', days=1, id='cleanup-stale-visitors')
+
+def _run_cleanup_job():
+    # Ensure the cleanup runs inside the Flask app context
+    with app.app_context():
+        try:
+            cleanup_stale_visitors(days=14)
+        except Exception:
+            pass
+
+scheduler.add_job(func=_run_cleanup_job, trigger='interval', days=1, id='cleanup-stale-visitors')
 scheduler.start()
 
 if __name__ == '__main__':

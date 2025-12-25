@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app import db
+from extensions import db
 from models import Visitor, Task
 
 
