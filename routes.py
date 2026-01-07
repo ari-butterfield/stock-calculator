@@ -119,7 +119,30 @@ def index():
         return redirect(url_for('index'))
 
     # Only show tasks belonging to this browser's visitor UUID
-    tasks = Task.query.filter_by(visitor_uuid=visitor_uuid).order_by(Task.date.desc()).all()
+    # Support sorting by numerical columns via query params: ?sort=<col>&dir=asc|desc
+    sort_by = request.args.get('sort')
+    sort_dir = request.args.get('dir', 'desc')
+    allowed = {
+        'pe': 'pe',
+        'peg': 'peg',
+        'roe': 'roe',
+        'risk': 'risk',
+        'daily_return': 'daily_return',
+        'daily_return_std': 'daily_return_std',
+        'date': 'date',
+    }
+
+    query = Task.query.filter_by(visitor_uuid=visitor_uuid)
+    if sort_by in allowed:
+        col = getattr(Task, allowed[sort_by])
+        if sort_dir == 'asc':
+            query = query.order_by(col.asc())
+        else:
+            query = query.order_by(col.desc())
+    else:
+        query = query.order_by(Task.date.desc())
+
+    tasks = query.all()
     # Create delete forms for CSRF protection per row
     delete_forms = {task.id: DeleteTaskForm(prefix=f'd{task.id}') for task in tasks}
 
@@ -135,7 +158,7 @@ def index():
                     flash('Row deleted.')
                     return redirect(url_for('index'))
 
-    return render_template('index.html', tasks=tasks, add_form=add_form, delete_forms=delete_forms)
+    return render_template('index.html', tasks=tasks, add_form=add_form, delete_forms=delete_forms, sort_by=sort_by, sort_dir=sort_dir)
 
 
 @app.route('/clear', methods=['POST'])

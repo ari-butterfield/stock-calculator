@@ -27,12 +27,30 @@
       <tr>
         <th style="width:14%">Ticker</th>
         <th style="width:30%">Company</th>
-        <th style="width:9%">P/E</th>
-        <th style="width:9%">PEG</th>
-        <th style="width:8%">ROE</th>
-        <th style="width:10%">Historical Risk<br>(5 Years)</th>
-        <th style="width:8%">Daily Return<br>(5 Years)</th>
-        <th style="width:8%">Daily<br>Std. Dev.<br>(5 Years)</th>
+        <th style="width:9%">P/E
+          {% set next = 'desc' if sort_by == 'pe' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='pe', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+        </th>
+        <th style="width:9%">PEG
+          {% set next = 'desc' if sort_by == 'peg' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='peg', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+        </th>
+        <th style="width:8%">ROE
+          {% set next = 'desc' if sort_by == 'roe' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='roe', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+        </th>
+        <th style="width:10%">Historical Risk<br>(5 Years)
+          {% set next = 'desc' if sort_by == 'risk' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='risk', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+        </th>
+        <th style="width:8%">Daily Return<br>(5 Years)
+          {% set next = 'desc' if sort_by == 'daily_return' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='daily_return', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+        </th>
+        <th style="width:8%">Daily<br>Std. Dev.<br>(5 Years)
+          {% set next = 'desc' if sort_by == 'daily_return_std' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='daily_return_std', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+        </th>
         <th style="width:4%"></th>
       </tr>
     </thead>
