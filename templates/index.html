@@ -19,11 +19,12 @@
   <table class="table table-sm table-bordered">
     <thead class="thead-light">
       <tr>
-        <th style="width:30%">Ticker</th>
-        <th style="width:15%">P/E ratio</th>
-        <th style="width:15%">PEG</th>
-        <th style="width:15%">ROE</th>
-        <th style="width:15%">Risk</th>
+        <th style="width:20%">Ticker</th>
+        <th style="width:30%">Company</th>
+        <th style="width:12%">P/E</th>
+        <th style="width:12%">PEG</th>
+        <th style="width:12%">ROE</th>
+        <th style="width:12%">Risk</th>
         <th style="width:10%"></th>
       </tr>
     </thead>
@@ -31,9 +32,10 @@
       {% for task in tasks %}
       <tr>
         <td>{{ task.ticker }}</td>
-        <td>{% if task.pe_ratio is not none %}{{ '%.4f'|format(task.pe_ratio) }}{% endif %}</td>
+        <td>{{ task.company_name or '' }}</td>
+        <td>{% if task.pe is not none %}{{ '%.4f'|format(task.pe) }}{% endif %}</td>
         <td>{% if task.peg is not none %}{{ '%.4f'|format(task.peg) }}{% endif %}</td>
-        <td>{% if task.roe is not none %}{{ '%.4f'|format(task.roe) }}{% endif %}</td>
+        <td>{% if task.roe is not none %}{{ '%.2f'|format(task.roe * 100) }}%{% endif %}</td>
         <td>{% if task.risk is not none %}{{ '%.6f'|format(task.risk) }}{% endif %}</td>
         <td>
           <form method="post" style="display:inline-block;">

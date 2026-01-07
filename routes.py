@@ -56,10 +56,11 @@ def index():
             except Exception:
                 return None
 
-        roe = info.get('returnOnEquity') or info.get('returnOnEquityAnnual') or info.get('roe')
+        roe = info.get('returnOnEquity')
         pe = info.get('trailingPE')
         growth = info.get('earningsGrowth')
         peg = None
+        company = info.get('shortName') or info.get('longName') or None
 
         if pe and growth:
             peg = pe / (growth * 100)
@@ -82,7 +83,8 @@ def index():
 
         task = Task(
             ticker=ticker_input,
-            pe_ratio=_safe_float(pe),
+            company_name=company,
+            pe=_safe_float(pe),
             peg=_safe_float(peg),
             roe=_safe_float(roe),
             risk=risk_val,
