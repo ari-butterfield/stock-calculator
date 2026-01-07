@@ -1,4 +1,4 @@
-from flask import render_template, url_for, flash, redirect, request, session
+from flask import render_template, url_for, flash, redirect, request, session, send_file
 from app import app
 from extensions import db
 from forms import TaskForm, DeleteTaskForm, ClearAllForm
@@ -6,6 +6,8 @@ import uuid
 import yfinance as yf
 import math
 import statistics
+from io import BytesIO
+import pandas as pd
 from models import Task, Visitor
 from datetime import datetime
 from flask import current_app
@@ -133,6 +135,43 @@ def clear_all():
             db.session.rollback()
             flash('Failed to clear stocks')
     return redirect(url_for('index'))
+
+
+@app.route('/export', methods=['GET'])
+def export_tasks():
+    visitor_uuid = session.get('visitor_uuid')
+    if not visitor_uuid:
+        flash('No data to export.')
+        return redirect(url_for('index'))
+
+    tasks = Task.query.filter_by(visitor_uuid=visitor_uuid).order_by(Task.date.desc()).all()
+
+    rows = []
+    for t in tasks:
+        rows.append({
+            'Ticker': t.ticker,
+            'Company': t.company_name or '',
+            'P/E': t.pe if t.pe is not None else None,
+            'PEG': t.peg if t.peg is not None else None,
+            'ROE (%)': round(t.roe * 100, 2) if t.roe is not None else None,
+            'Risk': t.risk if t.risk is not None else None,
+            'Date': t.date.isoformat() if t.date else '',
+        })
+
+    df = pd.DataFrame(rows)
+    buf = BytesIO()
+    # Try writing as Excel; fall back to CSV if Excel engine is unavailable
+    try:
+        with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Stocks')
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name='stocks.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception:
+        # fallback CSV
+        csv_buf = BytesIO()
+        csv_buf.write(df.to_csv(index=False).encode('utf-8'))
+        csv_buf.seek(0)
+        return send_file(csv_buf, as_attachment=True, download_name='stocks.csv', mimetype='text/csv')
 
 
 # Make clear form available in all templates easily

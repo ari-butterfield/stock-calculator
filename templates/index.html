@@ -10,10 +10,16 @@
       {{ add_form.submit(class="btn btn-primary") }}
     </form>
 
-    <form method="post" action="{{ url_for('clear_all') }}" class="ml-auto">
-      {{ clear_form.csrf_token }}
-      {{ clear_form.submit(class='btn btn-danger') }}
-    </form>
+    <div class="ml-auto d-flex">
+      <form method="get" action="{{ url_for('export_tasks') }}" class="mr-2">
+        <button type="submit" class="btn btn-success">📊 Export</button>
+      </form>
+
+      <form method="post" action="{{ url_for('clear_all') }}">
+        {{ clear_form.csrf_token }}
+        {{ clear_form.submit(class='btn btn-danger') }}
+      </form>
+    </div>
   </div>
 
   <table class="table table-sm table-bordered">
