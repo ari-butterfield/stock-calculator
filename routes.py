@@ -47,7 +47,7 @@ def index():
             info = tk.info or {}
         except Exception:
             current_app.logger.exception(f'yfinance lookup failed for {ticker_input}')
-            flash(f'Failed to lookup {ticker_input}.')
+            flash(f'Failed to lookup {ticker_input}. Yahoo Finance is rate limiting this application.')
             return redirect(url_for('index'))
 
         # Basic existence check
