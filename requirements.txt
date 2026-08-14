@@ -5,3 +5,4 @@ yfinance>=0.2
 pandas>=1.0
 numpy>=1.18
 APScheduler>=3.6
+pytest>=7.0

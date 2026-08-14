@@ -6,7 +6,7 @@ from extensions import db
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8u3rouhfkjdsfiluh'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

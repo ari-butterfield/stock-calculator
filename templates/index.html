@@ -22,11 +22,34 @@
     </div>
   </div>
 
+  <div class="row mb-2">
+    <div class="col-6">
+      <ul class="text-muted small mb-0 pl-3">
+        <li><strong>P/E:</strong> price per dollar of earnings.</li>
+        <li><strong>PEG:</strong> P/E adjusted for growth.</li>
+        <li><strong>ROE:</strong> profit as a percent of shareholders' equity.</li>
+      </ul>
+    </div>
+    <div class="col-6">
+      <ul class="text-muted small mb-0 pl-3">
+        <li><strong>Daily Return (5Y):</strong> average daily price change.</li>
+        <li><strong>Daily Std. Dev. (5Y):</strong> volatility of daily returns.</li>
+        <li><strong>Sharpe Ratio (5Y):</strong> risk-adjusted return.</li>
+      </ul>
+    </div>
+  </div>
+
   <table class="table table-sm table-bordered">
     <thead class="thead-light">
       <tr>
+        <th colspan="2"></th>
+        <th colspan="3" class="text-center small text-muted">Valuation</th>
+        <th colspan="3" class="text-center small text-muted">Return &amp; Risk</th>
+        <th></th>
+      </tr>
+      <tr>
         <th style="width:14%">Ticker</th>
-        <th style="width:30%">Company</th>
+        <th style="width:28%">Company</th>
         <th style="width:9%">P/E
           {% set next = 'desc' if sort_by == 'pe' and sort_dir == 'asc' else 'asc' %}
           <a href="{{ url_for('index', sort='pe', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
@@ -39,17 +62,17 @@
           {% set next = 'desc' if sort_by == 'roe' and sort_dir == 'asc' else 'asc' %}
           <a href="{{ url_for('index', sort='roe', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
         </th>
-        <th style="width:10%">Historical Risk<br>(5 Years)
-          {% set next = 'desc' if sort_by == 'risk' and sort_dir == 'asc' else 'asc' %}
-          <a href="{{ url_for('index', sort='risk', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
-        </th>
-        <th style="width:8%">Daily Return<br>(5 Years)
+        <th style="width:9%">Daily<br><span style="white-space:nowrap">Return
           {% set next = 'desc' if sort_by == 'daily_return' and sort_dir == 'asc' else 'asc' %}
-          <a href="{{ url_for('index', sort='daily_return', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+          <a href="{{ url_for('index', sort='daily_return', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a></span>
         </th>
-        <th style="width:8%">Daily<br>Std. Dev.<br>(5 Years)
+        <th style="width:9%">Daily<br><span style="white-space:nowrap">Std. Dev.
           {% set next = 'desc' if sort_by == 'daily_return_std' and sort_dir == 'asc' else 'asc' %}
-          <a href="{{ url_for('index', sort='daily_return_std', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
+          <a href="{{ url_for('index', sort='daily_return_std', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a></span>
+        </th>
+        <th style="width:10%">Sharpe<br>Ratio
+          {% set next = 'desc' if sort_by == 'sharpe' and sort_dir == 'asc' else 'asc' %}
+          <a href="{{ url_for('index', sort='sharpe', dir=next) }}" class="btn btn-link p-0 ml-1" style="font-size:0.95rem;line-height:1">▲▼</a>
         </th>
         <th style="width:4%"></th>
       </tr>
@@ -62,9 +85,9 @@
         <td>{% if task.pe is not none %}{{ '%.4f'|format(task.pe) }}{% endif %}</td>
         <td>{% if task.peg is not none %}{{ '%.4f'|format(task.peg) }}{% endif %}</td>
         <td>{% if task.roe is not none %}{{ '%.2f'|format(task.roe * 100) }}%{% endif %}</td>
-        <td>{% if task.risk is not none %}{{ '%.6f'|format(task.risk) }}{% endif %}</td>
         <td>{% if task.daily_return is not none %}{{ '%.4f'|format(task.daily_return * 100) }}%{% endif %}</td>
         <td>{% if task.daily_return_std is not none %}{{ '%.4f'|format(task.daily_return_std * 100) }}%{% endif %}</td>
+        <td>{% if task.sharpe_ratio is not none %}{{ '%.2f'|format(task.sharpe_ratio) }}{% endif %}</td>
         <td>
           <form method="post" style="display:inline-block;">
             {{ delete_forms[task.id].csrf_token }}

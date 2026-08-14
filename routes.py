@@ -2,10 +2,14 @@ from flask import render_template, url_for, flash, redirect, request, session, s
 from app import app
 from extensions import db
 from forms import TaskForm, DeleteTaskForm, ClearAllForm
+from calculations import (
+    calculate_peg,
+    calculate_daily_return,
+    calculate_daily_return_std,
+    calculate_sharpe_ratio,
+)
 import uuid
 import yfinance as yf
-import math
-import statistics
 from io import BytesIO
 import pandas as pd
 from models import Task, Visitor
@@ -65,10 +69,10 @@ def index():
         company = info.get('shortName') or info.get('longName') or None
 
         if pe and growth:
-            peg = pe / (growth * 100)
+            peg = calculate_peg(pe, growth)
 
-        # Compute historical risk: std dev of log daily returns (kept as before)
-        risk_val = None
+        # Compute return/risk stats from 5y of daily closes
+        sharpe_val = None
         daily_return_val = None
         daily_return_std_val = None
         try:
@@ -77,28 +81,11 @@ def index():
             if hist is not None and not hist.empty and 'Close' in hist:
                 # convert to plain floats
                 closes = [float(x) for x in hist['Close'].dropna().tolist()]
-            if len(closes) >= 3:
-                # log returns for historical risk (same approach as before)
-                log_returns = [math.log(closes[i] / closes[i-1]) for i in range(1, len(closes))]
-                # require at least two returns for sample stdev
-                if len(log_returns) >= 2:
-                    risk_val = float(statistics.stdev(log_returns))
-
-            # arithmetic daily returns (5y) for mean and std dev
-            if len(closes) >= 2:
-                arith_returns = [(closes[i] / closes[i-1] - 1.0) for i in range(1, len(closes))]
-                if len(arith_returns) >= 1:
-                    try:
-                        daily_return_val = float(statistics.mean(arith_returns))
-                    except Exception:
-                        daily_return_val = None
-                if len(arith_returns) >= 2:
-                    try:
-                        daily_return_std_val = float(statistics.stdev(arith_returns))
-                    except Exception:
-                        daily_return_std_val = None
+            daily_return_val = calculate_daily_return(closes)
+            daily_return_std_val = calculate_daily_return_std(closes)
+            sharpe_val = calculate_sharpe_ratio(daily_return_val, daily_return_std_val)
         except Exception:
-            risk_val = None
+            sharpe_val = None
             daily_return_val = None
             daily_return_std_val = None
 
@@ -108,7 +95,7 @@ def index():
             pe=_safe_float(pe),
             peg=_safe_float(peg),
             roe=_safe_float(roe),
-            risk=risk_val,
+            sharpe_ratio=sharpe_val,
             daily_return=_safe_float(daily_return_val),
             daily_return_std=_safe_float(daily_return_std_val),
             visitor_uuid=visitor_uuid,
@@ -126,9 +113,9 @@ def index():
         'pe': 'pe',
         'peg': 'peg',
         'roe': 'roe',
-        'risk': 'risk',
         'daily_return': 'daily_return',
         'daily_return_std': 'daily_return_std',
+        'sharpe': 'sharpe_ratio',
         'date': 'date',
     }
 
@@ -198,9 +185,9 @@ def export_tasks():
             'P/E': t.pe if t.pe is not None else None,
             'PEG': t.peg if t.peg is not None else None,
             'ROE (%)': round(t.roe * 100, 2) if t.roe is not None else None,
-            'Historical Risk (5Y)': t.risk if t.risk is not None else None,
             'Daily Return (%)': round(t.daily_return * 100, 4) if t.daily_return is not None else None,
             'Daily Return Std Dev (%)': round(t.daily_return_std * 100, 4) if t.daily_return_std is not None else None,
+            'Sharpe Ratio': round(t.sharpe_ratio, 4) if t.sharpe_ratio is not None else None,
             'Date': t.date.isoformat() if t.date else '',
         })
 
