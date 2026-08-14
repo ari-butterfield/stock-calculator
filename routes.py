@@ -46,6 +46,7 @@ def index():
             tk = yf.Ticker(ticker_input)
             info = tk.info or {}
         except Exception:
+            current_app.logger.exception(f'yfinance lookup failed for {ticker_input}')
             flash(f'Failed to lookup {ticker_input}.')
             return redirect(url_for('index'))
 
@@ -85,6 +86,7 @@ def index():
             daily_return_std_val = calculate_daily_return_std(closes)
             sharpe_val = calculate_sharpe_ratio(daily_return_val, daily_return_std_val)
         except Exception:
+            current_app.logger.exception(f'yfinance history fetch failed for {ticker_input}')
             sharpe_val = None
             daily_return_val = None
             daily_return_std_val = None
