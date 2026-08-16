@@ -24,7 +24,7 @@ Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, Alpha Vantage API, pandas, NumPy, AP
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/<your-username>/stock-calculator.git
+   git clone https://github.com/ari-butterfield/stock-calculator.git
    cd stock-calculator
    ```
 
