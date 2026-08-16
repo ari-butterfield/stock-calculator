@@ -1,6 +1,6 @@
 # Stock Calculator
 
-A Flask web app for tracking and comparing stock valuation and risk metrics. Add a ticker and the app pulls live data from Yahoo Finance (via `yfinance`) to compute valuation ratios and 5-year historical risk/return statistics, stored per-browser-session.
+A Flask web app for tracking and comparing stock valuation and risk metrics. Add a ticker and the app pulls live data from Alpha Vantage to compute valuation ratios and 5-year weekly risk/return statistics, stored per-browser-session.
 
 ![Stock Calculator screenshot](docs/screenshot.png)
 
@@ -8,9 +8,9 @@ A Flask web app for tracking and comparing stock valuation and risk metrics. Add
 
 ## Features
 
-- Add any publicly traded ticker and pull live fundamentals via `yfinance`
+- Add any publicly traded ticker and pull live fundamentals via Alpha Vantage
 - View valuation metrics at a glance: P/E, PEG, and ROE
-- View 5-year return, risk, and risk-adjusted performance: Daily Return, Daily Std. Dev., and Sharpe Ratio
+- View 5-year return, risk, and risk-adjusted performance: Weekly Return, Weekly Std. Dev., and Sharpe Ratio
 - Sort any metric column ascending or descending
 - Export the current table to Excel (`.xlsx`), with automatic CSV fallback
 - Clear all rows with one click
@@ -18,7 +18,7 @@ A Flask web app for tracking and comparing stock valuation and risk metrics. Add
 
 ## Tech Stack
 
-Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, yfinance, pandas, NumPy, APScheduler, Bootstrap 4, pytest
+Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, Alpha Vantage API, pandas, NumPy, APScheduler, Bootstrap 4, pytest
 
 ## Run Locally
 
@@ -42,7 +42,7 @@ Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, yfinance, pandas, NumPy, APScheduler
    pip install -r requirements.txt
    ```
 
-4. (Optional) Set a `SECRET_KEY`. The app runs out of the box with an insecure dev-only fallback, but you can override it — see `.env.example` for details and exact export commands.
+4. Set an `ALPHA_VANTAGE_API_KEY` (free at alphavantage.co). `SECRET_KEY` is optional for local dev (falls back to an insecure default) but should always be set to a real value in any public deployment.
 
 5. Run the app:
    ```bash

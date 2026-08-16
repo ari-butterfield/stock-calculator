@@ -3,18 +3,22 @@ from app import app
 from extensions import db
 from forms import TaskForm, DeleteTaskForm, ClearAllForm
 from calculations import (
-    calculate_peg,
-    calculate_daily_return,
-    calculate_daily_return_std,
+    calculate_weekly_return,
+    calculate_weekly_return_std,
     calculate_sharpe_ratio,
 )
 import uuid
-import yfinance as yf
+import os
+import time
+import requests
 from io import BytesIO
 import pandas as pd
 from models import Task, Visitor
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import current_app
+
+AV_BASE_URL = 'https://www.alphavantage.co/query'
+AV_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY')
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -41,20 +45,6 @@ def index():
     if add_form.validate_on_submit() and add_form.submit.data:
         ticker_input = add_form.ticker.data.strip().upper()
 
-        # Lookup via yfinance
-        try:
-            tk = yf.Ticker(ticker_input)
-            info = tk.info or {}
-        except Exception:
-            current_app.logger.exception(f'yfinance lookup failed for {ticker_input}')
-            flash(f'Failed to lookup {ticker_input}. Yahoo Finance is rate limiting this application.')
-            return redirect(url_for('index'))
-
-        # Basic existence check
-        if not info or (not info.get('shortName') and not info.get('longName') and info.get('regularMarketPrice') is None and not info.get('symbol')):
-            flash(f'Ticker {ticker_input} not found.')
-            return redirect(url_for('index'))
-
         def _safe_float(v):
             try:
                 if v is None:
@@ -63,43 +53,87 @@ def index():
             except Exception:
                 return None
 
-        roe = info.get('returnOnEquity')
-        pe = info.get('trailingPE')
-        growth = info.get('earningsGrowth')
-        peg = None
-        company = info.get('shortName') or info.get('longName') or None
+        def _av_float(v):
+            if v is None or v == 'None' or v == '':
+                return None
+            return _safe_float(v)
 
-        if pe and growth:
-            peg = calculate_peg(pe, growth)
-
-        # Compute return/risk stats from 5y of daily closes
-        sharpe_val = None
-        daily_return_val = None
-        daily_return_std_val = None
+        # Lookup + fundamentals via Alpha Vantage
         try:
-            hist = tk.history(period='5y', interval='1d')
-            closes = []
-            if hist is not None and not hist.empty and 'Close' in hist:
-                # convert to plain floats
-                closes = [float(x) for x in hist['Close'].dropna().tolist()]
-            daily_return_val = calculate_daily_return(closes)
-            daily_return_std_val = calculate_daily_return_std(closes)
-            sharpe_val = calculate_sharpe_ratio(daily_return_val, daily_return_std_val)
+            overview_resp = requests.get(
+                AV_BASE_URL,
+                params={'function': 'OVERVIEW', 'symbol': ticker_input, 'apikey': AV_API_KEY},
+                timeout=10,
+            )
+            overview_resp.raise_for_status()
+            overview = overview_resp.json()
         except Exception:
-            current_app.logger.exception(f'yfinance history fetch failed for {ticker_input}')
+            current_app.logger.exception(f'Alpha Vantage overview lookup failed for {ticker_input}')
+            flash(f'Failed to lookup {ticker_input}.')
+            return redirect(url_for('index'))
+
+        if overview and ('Information' in overview or 'Note' in overview):
+            current_app.logger.warning(f'Alpha Vantage rate limited for {ticker_input}: {overview}')
+            flash('Alpha Vantage API rate limit reached. Please try again later.')
+            return redirect(url_for('index'))
+
+        if overview and 'Error Message' in overview:
+            current_app.logger.warning(f'Alpha Vantage error for {ticker_input}: {overview}')
+            flash(f'Failed to lookup {ticker_input}.')
+            return redirect(url_for('index'))
+
+        if not overview or 'Symbol' not in overview:
+            current_app.logger.warning(f'Alpha Vantage overview returned no data for {ticker_input}: {overview}')
+            flash(f'Ticker {ticker_input} not found.')
+            return redirect(url_for('index'))
+
+        company = overview.get('Name')
+        pe = _av_float(overview.get('PERatio'))
+        peg = _av_float(overview.get('PEGRatio'))
+        roe = _av_float(overview.get('ReturnOnEquityTTM'))
+
+        # Compute return/risk stats from 5y of weekly closes
+        # (Alpha Vantage's free tier gates full daily history behind a paid plan;
+        # weekly history is free and unrestricted, and is a standard sampling
+        # interval for multi-year risk/return statistics.)
+        sharpe_val = None
+        weekly_return_val = None
+        weekly_return_std_val = None
+        try:
+            # Alpha Vantage's free tier throttles bursts to ~1 request/second;
+            # the OVERVIEW call above counts against that too.
+            time.sleep(1.1)
+            weekly_resp = requests.get(
+                AV_BASE_URL,
+                params={'function': 'TIME_SERIES_WEEKLY', 'symbol': ticker_input, 'apikey': AV_API_KEY},
+                timeout=15,
+            )
+            weekly_resp.raise_for_status()
+            weekly_data = weekly_resp.json()
+            series = weekly_data.get('Weekly Time Series', {})
+            if not series:
+                current_app.logger.warning(f'Alpha Vantage weekly series empty for {ticker_input}: {weekly_data}')
+            cutoff = (datetime.utcnow() - timedelta(days=5 * 365)).strftime('%Y-%m-%d')
+            sorted_dates = sorted(d for d in series if d >= cutoff)
+            closes = [float(series[d]['4. close']) for d in sorted_dates]
+            weekly_return_val = calculate_weekly_return(closes)
+            weekly_return_std_val = calculate_weekly_return_std(closes)
+            sharpe_val = calculate_sharpe_ratio(weekly_return_val, weekly_return_std_val)
+        except Exception:
+            current_app.logger.exception(f'Alpha Vantage weekly history fetch failed for {ticker_input}')
             sharpe_val = None
-            daily_return_val = None
-            daily_return_std_val = None
+            weekly_return_val = None
+            weekly_return_std_val = None
 
         task = Task(
             ticker=ticker_input,
             company_name=company,
-            pe=_safe_float(pe),
-            peg=_safe_float(peg),
-            roe=_safe_float(roe),
+            pe=pe,
+            peg=peg,
+            roe=roe,
             sharpe_ratio=sharpe_val,
-            daily_return=_safe_float(daily_return_val),
-            daily_return_std=_safe_float(daily_return_std_val),
+            weekly_return=weekly_return_val,
+            weekly_return_std=weekly_return_std_val,
             visitor_uuid=visitor_uuid,
         )
         db.session.add(task)
@@ -115,8 +149,8 @@ def index():
         'pe': 'pe',
         'peg': 'peg',
         'roe': 'roe',
-        'daily_return': 'daily_return',
-        'daily_return_std': 'daily_return_std',
+        'weekly_return': 'weekly_return',
+        'weekly_return_std': 'weekly_return_std',
         'sharpe': 'sharpe_ratio',
         'date': 'date',
     }
@@ -187,8 +221,8 @@ def export_tasks():
             'P/E': t.pe if t.pe is not None else None,
             'PEG': t.peg if t.peg is not None else None,
             'ROE (%)': round(t.roe * 100, 2) if t.roe is not None else None,
-            'Daily Return (%)': round(t.daily_return * 100, 4) if t.daily_return is not None else None,
-            'Daily Return Std Dev (%)': round(t.daily_return_std * 100, 4) if t.daily_return_std is not None else None,
+            'Weekly Return (%)': round(t.weekly_return * 100, 4) if t.weekly_return is not None else None,
+            'Weekly Return Std Dev (%)': round(t.weekly_return_std * 100, 4) if t.weekly_return_std is not None else None,
             'Sharpe Ratio': round(t.sharpe_ratio, 4) if t.sharpe_ratio is not None else None,
             'Date': t.date.isoformat() if t.date else '',
         })

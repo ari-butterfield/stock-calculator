@@ -10,13 +10,13 @@ class Task(db.Model):
     pe = db.Column(db.Float, nullable=True)
     peg = db.Column(db.Float, nullable=True)
     roe = db.Column(db.Float, nullable=True)
-    daily_return = db.Column(db.Float, nullable=True)
-    daily_return_std = db.Column(db.Float, nullable=True)
+    weekly_return = db.Column(db.Float, nullable=True)
+    weekly_return_std = db.Column(db.Float, nullable=True)
     sharpe_ratio = db.Column(db.Float, nullable=True)
     date = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"Task(visitor={self.visitor_uuid}, ticker={self.ticker}, company={self.company_name}, pe={self.pe}, peg={self.peg}, roe={self.roe}, daily_return={self.daily_return}, daily_return_std={self.daily_return_std}, sharpe_ratio={self.sharpe_ratio})"
+        return f"Task(visitor={self.visitor_uuid}, ticker={self.ticker}, company={self.company_name}, pe={self.pe}, peg={self.peg}, roe={self.roe}, weekly_return={self.weekly_return}, weekly_return_std={self.weekly_return_std}, sharpe_ratio={self.sharpe_ratio})"
 
 
 class Visitor(db.Model):
