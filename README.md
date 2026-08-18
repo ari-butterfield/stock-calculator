@@ -4,7 +4,7 @@ A Flask web app for tracking and comparing stock valuation and risk metrics. Add
 
 ![Stock Calculator screenshot](docs/screenshot.png)
 
-**Live Demo:** https://stock-calculator-ekt0.onrender.com (may take ~30s to wake up on first load)
+**Live Demo:** _(need URL)_
 
 ## Features
 
@@ -18,7 +18,7 @@ A Flask web app for tracking and comparing stock valuation and risk metrics. Add
 
 ## Tech Stack
 
-Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, Alpha Vantage API, pandas, NumPy, APScheduler, Bootstrap 4, pytest
+Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, Alpha Vantage API, pandas, NumPy, APScheduler, Bootstrap 4, pytest, python-dotenv, gunicorn, Caddy
 
 ## Run Locally
 
@@ -42,7 +42,7 @@ Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, Alpha Vantage API, pandas, NumPy, AP
    pip install -r requirements.txt
    ```
 
-4. Set an `ALPHA_VANTAGE_API_KEY` (free at alphavantage.co). `SECRET_KEY` is optional for local dev (falls back to an insecure default) but should always be set to a real value in any public deployment.
+4. Copy `.env.example` to `.env` and fill in a real `ALPHA_VANTAGE_API_KEY` (free at alphavantage.co). `SECRET_KEY` is optional for local dev (falls back to an insecure default) but should always be set to a real value in any public deployment.
 
 5. Run the app:
    ```bash
@@ -56,6 +56,18 @@ Flask, Flask-WTF, Flask-SQLAlchemy, SQLite, Alpha Vantage API, pandas, NumPy, AP
 ```bash
 python -m pytest
 ```
+
+## Deployment
+
+Runs on a small VPS behind Caddy + gunicorn.
+
+```bash
+# on a fresh droplet, as root
+curl -fsSL https://raw.githubusercontent.com/ari-butterfield/stock-calculator/main/deploy/setup_vps.sh -o setup_vps.sh
+bash setup_vps.sh [domain]   # omit domain to get a sslip.io hostname
+```
+
+Set `ALPHA_VANTAGE_API_KEY` in `/opt/stock-calculator/.env`, then `systemctl restart stock-calculator`. Re-run the script anytime to pull and redeploy.
 
 ## License
 

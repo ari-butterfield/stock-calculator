@@ -1,0 +1,15 @@
+[Unit]
+Description=Stock Calculator (gunicorn)
+After=network.target
+
+[Service]
+User=stockapp
+Group=stockapp
+WorkingDirectory=/opt/stock-calculator
+EnvironmentFile=/opt/stock-calculator/.env
+ExecStart=/opt/stock-calculator/venv/bin/gunicorn -w 1 -b 127.0.0.1:8000 app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
