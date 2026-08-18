@@ -4,7 +4,7 @@ A Flask web app for tracking and comparing stock valuation and risk metrics. Add
 
 ![Stock Calculator screenshot](docs/screenshot.png)
 
-**Live Demo:** _(need URL)_
+**Live Demo:** [Stock Calculator](https://178-104-54-101.sslip.io/)
 
 ## Features
 
